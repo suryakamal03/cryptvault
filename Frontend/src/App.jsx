@@ -9,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Simple Dropzone Component
 function Dropzone({ onFileSelect, selectedFile }) {
   const handleDrop = (e) => {
     e.preventDefault();
