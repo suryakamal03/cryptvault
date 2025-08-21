@@ -12,10 +12,8 @@ cloudinary.config({
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/jpg', 'image/gif',
@@ -24,12 +22,7 @@ const upload = multer({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/plain'
     ];
-
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('File type not allowed'), false);
-    }
+    cb(null, allowedTypes.includes(file.mimetype));
   }
 });
 
@@ -37,18 +30,10 @@ const upload = multer({
 const getUserVaultFiles = async (req, res) => {
   try {
     const files = await VaultFile.find({ vaultId: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      count: files.length,
-      files: files
-    });
+    res.status(200).json({ success: true, count: files.length, files });
   } catch (error) {
     console.error('Error fetching vault files:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching files',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -59,37 +44,27 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file provided' });
     }
 
-    // Upload to Cloudinary publicly
-const result = await new Promise((resolve, reject) => {
-  const uploadStream = cloudinary.uploader.upload_stream(
-    {
-      resource_type: 'auto',
-      folder: `cryptvault/${req.user.Vaultname}`,
-      type: 'upload', // public
-    },
-    (error, result) => {
-      if (error) reject(error);
-      else resolve(result);
-    }
-  );
-  uploadStream.end(req.file.buffer);
-});
+    // Determine resource type
+    const resourceType = req.file.mimetype.startsWith('image/') ? 'image' : 'raw';
 
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: resourceType, folder: `cryptvault/${req.user.Vaultname}` },
+        (error, result) => (error ? reject(error) : resolve(result))
+      );
+      uploadStream.end(req.file.buffer);
+    });
 
-// Generate a public download URL
-const downloadUrl = result.secure_url.replace('/upload/', '/upload/fl_attachment/');
-
-
-
-const newFile = await VaultFile.create({
-  vaultId: req.user._id,
-  Filename: req.file.originalname,
-  cloudinaryurl: downloadUrl,
-  filetype: req.file.mimetype,
-  filesize: req.file.size,
-  cloudinaryPublicId: result.public_id,
-});
-
+    // Save file info in MongoDB
+    const newFile = await VaultFile.create({
+      vaultId: req.user._id,
+      Filename: req.file.originalname,
+      cloudinaryurl: result.secure_url,
+      filetype: req.file.mimetype,
+      filesize: req.file.size,
+      cloudinaryPublicId: result.public_id
+    });
 
     res.status(201).json({
       success: true,
@@ -106,11 +81,7 @@ const newFile = await VaultFile.create({
 
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'File upload failed',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'File upload failed', error: error.message });
   }
 };
 
@@ -119,27 +90,21 @@ const deleteFile = async (req, res) => {
   try {
     const { fileId } = req.params;
     const file = await VaultFile.findOne({ _id: fileId, vaultId: req.user._id });
+    if (!file) return res.status(404).json({ success: false, message: 'File not found or unauthorized' });
 
-    if (!file) {
-      return res.status(404).json({ success: false, message: 'File not found or unauthorized' });
-    }
+    const resourceType = file.filetype === 'application/pdf' ? 'raw' : 'auto';
+    if (file.cloudinaryPublicId) await cloudinary.uploader.destroy(file.cloudinaryPublicId, { resource_type: resourceType });
 
-    // Delete from Cloudinary
-    if (file.cloudinaryPublicId) {
-      await cloudinary.uploader.destroy(file.cloudinaryPublicId, { resource_type: "auto" });
-    }
-
-    // Delete from MongoDB
     await VaultFile.findByIdAndDelete(fileId);
-
     res.status(200).json({ success: true, message: 'File deleted successfully' });
+
   } catch (error) {
     console.error('Delete error:', error);
     res.status(500).json({ success: false, message: 'Error deleting file', error: error.message });
   }
 };
 
-// Export middleware and controllers
+// Export
 module.exports = {
   upload: upload.single('file'),
   getUserVaultFiles,

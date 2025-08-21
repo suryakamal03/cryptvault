@@ -262,32 +262,41 @@ function App() {
   // ✅ Download Function
 const downloadFile = async (file) => {
   try {
-    const token = localStorage.getItem("userToken");
-    if (!token) return alert("Please login first");
-
-    // Call backend route
-    const res = await fetch(`https://cryptvault-1.onrender.com/users/vault/download/${file._id}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    // The backend sends a redirect to the signed URL
-    if (res.redirected) {
+    // For non-image files, use fetch + blob to avoid URL issues
+    if (!file.filetype.startsWith('image/')) {
+      const response = await fetch(file.cloudinaryurl, {
+        mode: 'cors'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
       const a = document.createElement("a");
-      a.href = res.url;           // redirected signed URL
-      a.download = file.Filename; // optional
+      a.href = url;
+      a.download = file.Filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      
+      window.URL.revokeObjectURL(url);
     } else {
-      alert("Failed to download file");
+      // For images, simple direct download
+      const a = document.createElement("a");
+      a.href = file.cloudinaryurl;
+      a.download = file.Filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
-  } catch (err) {
-    console.error("Download error:", err);
-    alert("Error downloading file");
+  } catch (error) {
+    console.error('Download failed:', error);
+    alert('Download failed. Please try again or contact support.');
   }
 };
-
 
 
 

@@ -5,7 +5,7 @@ const { upload, getUserVaultFiles, uploadFile, deleteFile } = require('../contro
 
 
 router.get('/files', protect, getUserVaultFiles);
-router.post('/upload', protect, upload, uploadFile);
+router.post('/upload', uploadFile);
 router.delete('/files/:fileId', protect, deleteFile);
 
 module.exports = router;
