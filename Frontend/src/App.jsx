@@ -79,6 +79,9 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+
+  const [docs,setDocs] = useState(false);
+  const [setting,setSetting] = useState(false);
   // Check if user is already logged in on component mount
   useEffect(() => {
     const token = localStorage.getItem("userToken");
@@ -251,7 +254,7 @@ function App() {
       setUploading(false);
     }
   }
-
+  
   // Final solution for PDF download
   const downloadFile = async (file) => {
     try {
@@ -329,11 +332,10 @@ function App() {
       <header className="p-4 flex justify-between items-center shadow-md bg-white">
         <div className="font-bold text-2xl">CryptVault</div>
 
-        <nav className="flex gap-3">
-          <Button variant="ghost" className="font-semibold">Home</Button>
-          <Button variant="ghost" className="font-semibold">Docs</Button>
-        </nav>
-
+        {/* <nav className="flex absolute left-50 gap-3"> */}
+          {/* <Button variant="ghost" className="font-semibold">Home</Button> */}
+          {/* <Button variant="ghost" className="font-semibold" onClick={()=> setDocs(true)}>Docs</Button> */}
+        {/* </nav> */}
         <div>
           {isLoggedIn ? (
             <DropdownMenu>
@@ -344,7 +346,7 @@ function App() {
                 <DropdownMenuLabel>{currentUser ? `Hello, ${currentUser}` : "Account"}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={()=> setSetting(true)}>Settings</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   Logout
                 </DropdownMenuItem>
@@ -355,10 +357,73 @@ function App() {
           )}
         </div>
       </header>
+      {docs && (
+  <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 w-96 h-[80vh] border border-gray-300 flex flex-col">
+      {/* Header */}
+      <div className="flex justify-center items-center mb-4">
+        <h2 className="text-xl font-bold">Documentation</h2>
+        <button 
+          onClick={() => setDocs(false)} 
+          className="text-gray-500 hover:text-gray-700 text-xl"
+        >
+          ✕
+        </button>
+      </div>
 
+      {/* Scrollable content */}
+      <div className="overflow-y-auto pr-2 space-y-4 text-sm text-gray-700">
+        <p>
+          Welcome to <b>CryptVault</b> , This application lets you create a secure vault 
+          (like a private folder) to store your files, images, and notes safely in the cloud.
+        </p>
+
+        {/* <h3 className="font-semibold text-lg">📌 Why I Built This</h3>
+        <p>
+          In my college, mobile phones are prohibited in labs. Sometimes, I need to 
+          write observations from exercises my professor sends through WhatsApp or email.  
+          Logging into Gmail on college PCs feels insecure since we must type our credentials 
+          on shared computers.  
+          That’s why I built this vault system — a safer and simpler way to store and 
+          access notes/files without exposing my personal Gmail credentials.
+        </p> */}
+
+        <h3 className="font-semibold text-lg">⚙️ How It Works</h3>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Create a vault with a name and password.</li>
+          <li>Upload files, notes, or images to your vault (stored securely in Cloudinary & MongoDB).</li>
+          <li>Access your vault anytime by logging in with your vault credentials.</li>
+          <li>Use it for simple needs like notes, assignments, and observations.</li>
+        </ul>
+
+        <h3 className="font-semibold text-lg">👥 Use Case</h3>
+        <p>
+          Create a shared vault with your friends for group projects.
+            Upload assignments, lab work, or resources, and keep everything in one secure place.
+        </p>
+
+        <h3 className="font-semibold text-lg">🔒 Security Note</h3>
+        <p>
+          This app is meant for simple, everyday usage like storing notes and files.  
+          Please avoid uploading highly sensitive or personal documents.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+      {/* settings */}
+      {setting && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg w-96 max-w-md border border-gray-300">
+            <div className="flex justify-center items-center mb-4">
+                
+            </div>
+          </div>
+        </div>
+      )}
       {/* Create Vault Modal */}
       {showAuth && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0  bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96 max-w-md border border-gray-300">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Create Your Vault</h2>
@@ -577,9 +642,8 @@ function App() {
           <div className="text-center py-16">
             <h2 className="text-2xl font-bold text-gray-700 mb-4">Welcome to CryptVault</h2>
             <p className="text-gray-500 mb-6">Please create a vault or login to start uploading files</p>
-            <Button onClick={() => setShowAuth(true)} className="px-6 py-2">
-              Get Started
-            </Button>
+            <Button onClick={() => setShowAuth(true)} className="px-6 py-2 ">Get Started</Button>
+            <Button  className="px-6 py-2 ml-2" onClick={()=> setDocs(true)}>Documentation</Button>
           </div>
         )}
       </main>
