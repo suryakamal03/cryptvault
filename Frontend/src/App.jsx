@@ -105,7 +105,7 @@ function App() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/users/vault/files", {
+      const res = await fetch("https://cryptvault-1.onrender.com/users/vault/files", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -148,7 +148,7 @@ function App() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/auth/users/register", {
+      const response = await fetch("https://cryptvault-1.onrender.com/auth/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -184,7 +184,7 @@ function App() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/auth/users/login", {
+      const response = await fetch("https://cryptvault-1.onrender.com/auth/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -230,7 +230,7 @@ function App() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch("http://localhost:5000/users/vault/upload", {
+      const response = await fetch("https://cryptvault-1.onrender.com/users/vault/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
