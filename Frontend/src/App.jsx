@@ -9,12 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-
-
-// http://localhost:5000 use if u want to run locally
-
-
-
 function Dropzone({ onFileSelect, selectedFile }) {
   const handleDrop = (e) => {
     e.preventDefault();
@@ -98,7 +92,7 @@ function App() {
     setLoading(false);
   }, []);
 
-  // ✅ Fetch User Files
+  // Fetch User Files
   const fetchFiles = async () => {
     try {
       setLoading(true);
@@ -108,7 +102,7 @@ function App() {
         return;
       }
 
-      const res = await fetch("https://cryptvault-1.onrender.com/users/vault/files", {
+      const res = await fetch("http://localhost:5000/users/vault/files", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +132,7 @@ function App() {
     }
   }, [isLoggedIn]);
 
-  // ✅ Signup (Create Vault)
+  // Signup (Create Vault)
   async function createVault() {
     if (!createVaultName || !createVaultPassword || !confirmPassword) {
       alert("Please fill all fields");
@@ -151,7 +145,7 @@ function App() {
     }
 
     try {
-      const response = await fetch("https://cryptvault-1.onrender.com/auth/users/register", {
+      const response = await fetch("http://localhost:5000/auth/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +173,7 @@ function App() {
     }
   }
 
-  // ✅ Login Vault
+  // Login Vault
   async function openVault(vaultName, vaultPassword) {
     if (!vaultName || !vaultPassword) {
       alert("Please enter both vault name and password");
@@ -187,7 +181,7 @@ function App() {
     }
 
     try {
-      const response = await fetch("https://cryptvault-1.onrender.com/auth/users/login", {
+      const response = await fetch("http://localhost:5000/auth/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -214,7 +208,7 @@ function App() {
     }
   }
 
-  // ✅ Fixed Upload Function
+  // Upload Function
   async function uploadFile() {
     if (!selectedFile) {
       alert("Please select a file first");
@@ -233,7 +227,7 @@ function App() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch("https://cryptvault-1.onrender.com/users/vault/upload", {
+      const response = await fetch("http://localhost:5000/users/vault/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -246,7 +240,6 @@ function App() {
       if (response.ok) {
         alert("File uploaded successfully!");
         setSelectedFile(null);
-        // Refresh the files list
         await fetchFiles();
       } else {
         alert(data.message || `Upload failed: ${response.status}`);
@@ -259,46 +252,65 @@ function App() {
     }
   }
 
-  // ✅ Download Function
-const downloadFile = async (file) => {
-  try {
-    // For non-image files, use fetch + blob to avoid URL issues
-    if (!file.filetype.startsWith('image/')) {
-      const response = await fetch(file.cloudinaryurl, {
-        mode: 'cors'
-      });
+  // Final solution for PDF download
+  const downloadFile = async (file) => {
+    try {
+      // Method 1: Use fetch with proper headers and create blob
+      const response = await fetch(file.cloudinaryurl);
       
-      if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        
+        // Create object URL and download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.Filename;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+        return;
       }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.Filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      window.URL.revokeObjectURL(url);
-    } else {
-      // For images, simple direct download
-      const a = document.createElement("a");
-      a.href = file.cloudinaryurl;
-      a.download = file.Filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    } catch (error) {
+      console.log('Fetch method failed, trying alternative:', error);
     }
-  } catch (error) {
-    console.error('Download failed:', error);
-    alert('Download failed. Please try again or contact support.');
-  }
-};
-
-
+    
+    // Method 2: Use iframe method for PDFs (works around CORS)
+    if (file.filetype === 'application/pdf' || file.Filename.endsWith('.pdf')) {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = file.cloudinaryurl;
+      
+      document.body.appendChild(iframe);
+      
+      // Remove iframe after a short delay
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+      
+      // Also try direct download as backup
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = file.cloudinaryurl;
+        link.download = file.Filename;
+        link.click();
+      }, 500);
+      
+      return;
+    }
+    
+    // Method 3: Direct download for other files
+    const link = document.createElement('a');
+    link.href = file.cloudinaryurl;
+    link.download = file.Filename;
+    link.target = '_blank';
+    link.click();
+  };
 
   // Handle logout
   const handleLogout = () => {
@@ -536,28 +548,28 @@ const downloadFile = async (file) => {
                 </div>
               ) : (
                 <div className="space-y-3">
-  {files.map((file) => (
-    <div
-      key={file._id}
-      className="flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm border"
-    >
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{file.Filename}</p>
-        <p className="text-sm text-gray-500">
-          Uploaded: {new Date(file.createdAt || Date.now()).toLocaleDateString()}
-        </p>
-      </div>
-      <div className="flex gap-2 ml-4">
-        <button
-  onClick={() => downloadFile(file)}
-  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-600 rounded hover:bg-blue-50 transition-colors"
->
-  Download
-</button>
-      </div>
-    </div>
-  ))}
-</div>
+                  {files.map((file) => (
+                    <div
+                      key={file._id}
+                      className="flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm border"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{file.Filename}</p>
+                        <p className="text-sm text-gray-500">
+                          Uploaded: {new Date(file.createdAt || Date.now()).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => downloadFile(file)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-600 rounded hover:bg-blue-50 transition-colors"
+                        >
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </>

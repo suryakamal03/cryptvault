@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cloudinary = require('cloudinary').v2;
-const VaultFile = require('./models/vaultSchema.js'); // make sure path is correct
+const VaultFile = require('./models/vaultSchema.js');
 const userRouter = require('./routes/userrRoute.js');
 const vaultRouter = require('./routes/vaultRoute.js');
 
@@ -20,24 +20,44 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Your existing routes
+// Routes
 app.use('/auth/users', userRouter);
 app.use('/users/vault', vaultRouter);
 
-// ✅ Add this download route **after your vault routes**
+// Download route with proper file streaming
 app.get("/users/vault/download/:fileId", async (req, res) => {
   try {
     const file = await VaultFile.findById(req.params.fileId);
     if (!file) return res.status(404).send("File not found");
 
-    const signedUrl = cloudinary.url(file.cloudinaryPublicId, {
-      resource_type: "auto",
-      type: "authenticated",
-      attachment: true,
-      expires_at: Math.floor(Date.now()/1000) + 60*10 // 10 min expiry
+    // Use axios or node-fetch to get file from Cloudinary
+    const https = require('https');
+    const http = require('http');
+    const url = require('url');
+    
+    const fileUrl = file.cloudinaryurl;
+    const parsedUrl = url.parse(fileUrl);
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+    
+    // Set download headers
+    res.set({
+      'Content-Disposition': `attachment; filename="${file.Filename}"`,
+      'Content-Type': 'application/octet-stream',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type'
     });
 
-    res.redirect(signedUrl);
+    // Stream file from Cloudinary to client
+    const request = client.get(fileUrl, (response) => {
+      response.pipe(res);
+    });
+    
+    request.on('error', (err) => {
+      console.error('Download error:', err);
+      res.status(500).send('Download failed');
+    });
+    
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
