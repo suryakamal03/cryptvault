@@ -361,7 +361,7 @@ function App() {
   <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
     <div className="bg-white rounded-lg p-6 w-96 h-[80vh] border border-gray-300 flex flex-col">
       {/* Header */}
-      <div className="flex justify-center items-center mb-4">
+      <div className="flex justify-between items-start mb-4">
         <h2 className="text-xl font-bold">Documentation</h2>
         <button 
           onClick={() => setDocs(false)} 
